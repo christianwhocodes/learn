@@ -1,0 +1,2 @@
+# Keep temporary files out of version control
+.tmp
