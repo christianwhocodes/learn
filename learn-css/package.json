@@ -1,0 +1,26 @@
+{
+  "name": "learn-css",
+  "version": "1.0.0",
+  "description": "Developer CSS notes.",
+  "scripts": {
+    "build-css": "G:/.packages/tailwindcss-cli/tailwindcss-windows-x64.exe -i ./src/static/global.css -o ./build/output.css",
+    "build": "npm run build-css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/christianwhocodes/learn.git"
+  },
+  "keywords": [],
+  "author": "<Kevin Wasike Wakhisi> hey@christianwhocodes.space",
+  "license": "MIT",
+  "readme": "README.md",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/christianwhocodes/learn/issues"
+  },
+  "homepage": "https://github.com/christianwhocodes/learn#readme",
+  "dependencies": {
+    "prettier": "^3.7.3",
+    "serve": "^14.2.5"
+  }
+}
