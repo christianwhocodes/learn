@@ -638,14 +638,6 @@ if __name__ == "__main__":
 - `except Exception`: Catch-all for unexpected errors
 - `else`: Success path - only executes if no exceptions occurred
 
-**Code Structure (matches publish.py):**
-
-- Two functions: `main()` and `generate_report()`
-- `main()`: Parses arguments and passes to worker function
-- Worker function: Contains all logic with try-except-else block
-- Returns `ExitCode` enum for meaningful exit codes
-- Type hints throughout for clarity
-
 **argparse Integration:**
 
 - Positional argument (output file)
