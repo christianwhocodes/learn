@@ -350,9 +350,10 @@ This example demonstrates a practical script that generates a system information
 - Uses try-except-else pattern
 - argparse integration for CLI options
 - Returns meaningful exit codes
-<!-- TODO: Confirm that this code works -->
+
 ```python
 import argparse
+import platform
 import subprocess
 import sys
 from enum import IntEnum
@@ -412,47 +413,122 @@ def generate_report(output_file: str, verbose: bool = False) -> ExitCode:
         # Get disk usage
         if verbose:
             print("→ Getting disk usage...")
-        disk_result: subprocess.CompletedProcess[str] = subprocess.run(
-            ["df", "-h"],
-            check=True,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=10,
-        )
-        report_lines.append("Disk Usage:")
-        report_lines.append(disk_result.stdout.strip())
+        system = platform.system().lower()
+        match system:
+            case "linux" | "darwin":
+                disk_result: subprocess.CompletedProcess[str] = subprocess.run(
+                    ["df", "-h"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    timeout=10,
+                )
+                report_lines.append("Disk Usage:")
+                report_lines.append(disk_result.stdout.strip())
+            case "windows":
+                disk_cmd = [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "& { Get-CimInstance Win32_LogicalDisk | "
+                    "Select-Object DeviceID,@{n='SizeGB';e={[math]::Round($_.Size/1GB,2)}}, "
+                    "@{n='FreeGB';e={[math]::Round($_.FreeSpace/1GB,2)}} | "
+                    "ConvertTo-Csv -NoTypeInformation }",
+                ]
+                disk_result = subprocess.run(
+                    disk_cmd,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    timeout=10,
+                )
+                report_lines.append("Disk Usage (Windows):")
+                report_lines.append(disk_result.stdout.strip())
+            case _:
+                report_lines.append(f"Disk Usage: unsupported platform '{system}'")
         report_lines.append("")
 
         # Get memory info
         if verbose:
             print("→ Getting memory info...")
-        memory_result: subprocess.CompletedProcess[str] = subprocess.run(
-            ["free", "-h"],
-            check=True,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=10,
-        )
-        report_lines.append("Memory Usage:")
-        report_lines.append(memory_result.stdout.strip())
+        match system:
+            case "linux" | "darwin":
+                memory_result: subprocess.CompletedProcess[str] = subprocess.run(
+                    ["free", "-h"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    timeout=10,
+                )
+                report_lines.append("Memory Usage:")
+                report_lines.append(memory_result.stdout.strip())
+            case "windows":
+                mem_cmd = [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "& { $os = Get-CimInstance Win32_OperatingSystem; "
+                    "$total = [math]::Round($os.TotalVisibleMemorySize/1MB,2); "
+                    "$free = [math]::Round($os.FreePhysicalMemory/1MB,2); "
+                    "$used = [math]::Round($total - $free,2); "
+                    "Write-Output ('Total(GB): ' + $total); "
+                    "Write-Output ('Used(GB):  ' + $used); "
+                    "Write-Output ('Free(GB):  ' + $free) }",
+                ]
+                memory_result = subprocess.run(
+                    mem_cmd,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    timeout=10,
+                )
+                report_lines.append("Memory Usage (Windows):")
+                report_lines.append(memory_result.stdout.strip())
+            case _:
+                report_lines.append(f"Memory Usage: unsupported platform '{system}'")
         report_lines.append("")
 
         # Get top 5 processes by memory
         if verbose:
             print("→ Getting top processes...")
-        process_result: subprocess.CompletedProcess[str] = subprocess.run(
-            ["ps", "aux", "--sort=-%mem"],
-            check=True,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=10,
-        )
-        lines = process_result.stdout.strip().split("\n")[:6]  # Header + top 5
-        report_lines.append("Top 5 Processes by Memory:")
-        report_lines.extend(lines)
+        match system:
+            case "linux" | "darwin":
+                process_result: subprocess.CompletedProcess[str] = subprocess.run(
+                    ["ps", "aux", "--sort=-%mem"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    timeout=10,
+                )
+                lines = process_result.stdout.strip().split("\n")[:6]  # Header + top 5
+                report_lines.append("Top 5 Processes by Memory:")
+                report_lines.extend(lines)
+            case "windows":
+                proc_cmd = [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    "& { Get-Process | Sort-Object -Descending WS | "
+                    "Select-Object -First 5 Id,ProcessName,@{n='WorkingSetMB';e={[math]::Round($_.WS/1MB,2)}} | "
+                    "ConvertTo-Csv -NoTypeInformation }",
+                ]
+                process_result = subprocess.run(
+                    proc_cmd,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    timeout=10,
+                )
+                report_lines.append("Top 5 Processes by Memory (Windows):")
+                report_lines.append(process_result.stdout.strip())
+            case _:
+                report_lines.append(f"Top Processes: unsupported platform '{system}'")
         report_lines.append("")
 
     except FileNotFoundError as e:
@@ -576,8 +652,6 @@ if __name__ == "__main__":
 - Optional flag (--verbose)
 - Help text with examples
 - `RawDescriptionHelpFormatter` for formatted epilog
-
-**Note:** This script uses Unix commands (`hostname`, `whoami`, `df`, `free`, `ps`). On Windows, you'd use different commands like `hostname.exe`, `whoami.exe`, `wmic`, `tasklist`, etc.
 
 📚 **Learn about argument parsing:** [13-`argparse`](./13-argparse.ipynb)
 
