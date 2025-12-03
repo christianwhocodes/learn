@@ -305,6 +305,7 @@ else:
 - ✅ **Always use a list of arguments**: `["prog", "arg1", "arg2"]`
 - ❌ **Avoid `shell=True`**: Prevents shell injection vulnerabilities
 - ✅ **Validate user input**: Never pass unsanitized user input to commands
+  <!-- TODO: Show how to validate user input using shlex, especially when `shell=True` -->
 
 ### 6.2 Output Handling
 
@@ -349,7 +350,7 @@ This example demonstrates a practical script that generates a system information
 - Uses try-except-else pattern
 - argparse integration for CLI options
 - Returns meaningful exit codes
-
+<!-- TODO: Confirm that this code works -->
 ```python
 import argparse
 import subprocess
@@ -599,11 +600,21 @@ cp = subprocess.run(
 )
 
 # Fail-fast on errors
-subprocess.run(
-    ["pytest"],
-    check=True,
-    timeout=300
-)
+try:
+   cp: subprocess.CompletedProcess[str] = subprocess.run(
+       ["pytest"],
+       check=True,
+       capture_output=True,
+       text=True,
+       encoding="utf-8"
+       timeout=300
+   )
+except subprocess.CalledProcessError as e:
+   print(e.cmd)
+   print(e.returncode)
+   print(e.stderr)
+else:
+   print(cp.stdout)
 
 # Handle errors manually
 cp = subprocess.run(["make", "build"], capture_output=True, text=True)
